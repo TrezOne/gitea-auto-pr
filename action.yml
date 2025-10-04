@@ -38,6 +38,7 @@ runs:
         else
           echo "WARNING ⛔: Tea v${{ inputs.tea-version }} Checksum Failed"
           exit 1
+        fi
     - name: Login to Gitea
       shell: bash
       env:
@@ -61,13 +62,13 @@ runs:
 
         echo "exists=$pr_exists" >> $GITHUB_OUTPUT
     - name: Skip PR Creation
-      if: steps.check-opened-pr-step.outputs.exists == '0'
+      if: steps.check-opened-pr-step.outputs.exists == '1'
       shell: bash
       run: |
         echo -e "✅ A PR already exists for ${{ gitea.ref_name }}\nSkipping PR creation..."\
     - name: PR Creation
       shell: bash
-      if: steps.check-opened-pr-step.outputs.exists == '1'
+      if: steps.check-opened-pr-step.outputs.exists == '0'
       run: |
         PR_TITLE=$(git log -n 1 --format=%s)
         PR_DESCRIP=$(git log -n 1 --format=%b)
