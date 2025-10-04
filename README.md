@@ -24,7 +24,7 @@ user: read
 
 ### tea-version
 
-Tea CLI version (Default: 0.10.1)
+Tea CLI version (Default: 0.11.0)
 
 ### pr-label
 
@@ -42,7 +42,7 @@ User to assign the PR to
   with:
     url: https://git.domain.tld
     token: abcdefghijklmnopqrstuvwxyz
-    tea-version: 0.10.1
+    tea-version: 0.11.0
     pr-label: foobar
     assignee: ${{ github.actor }}
 ```
