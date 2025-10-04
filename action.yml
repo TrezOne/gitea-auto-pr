@@ -1,0 +1,86 @@
+name: "Pre-pull Docker Compose service images"
+description: "Prepares Docker Compose services by pulling images in parallel before dry-run"
+author: "Trez.One <charish.patel@trez.wtf>"
+
+branding:
+  icon: "git-pull-request"
+  color: "green"
+
+inputs:
+  url:
+    description: URL to the Gitea instance
+    required: true
+  token:
+    description: Personal access token to the Gitea instance
+    required: true
+  tea-version:
+    description: Tea CLI version
+    required: true
+    default: 0.10.1
+  pr-label:
+    description: Labels for the PR (comma-separated)
+  assignee:
+    description: User to assign the PR to
+    default: ${{ github.actor }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Tea
+      env:
+        TEA_DL_URL: "https://dl.gitea.com/tea/${{ inputs.tea-version }}\
+          /tea-${{ inputs.tea-version }}-linux-amd64"
+      shell: bash
+      run: |
+        TEA_DIR=$(mktemp -d -t tmp.XXXX)
+        pushd $TEA_DIR
+        wget "$TEA_DL_URL"
+        wget "${TEA_DL_URL}.sha256"
+        if $(sha256sum --quiet -c "tea-${{ inputs.tea-version }}-linux-amd64.sha256"); then
+          mv "tea-${{ inputs.tea-version }}-linux-amd64" /usr/bin/tea
+          chmod +x /usr/bin/tea
+          popd
+          rm -rf $TEA_DIR
+        else
+          popd
+          rm -rf $TEA_DIR
+          echo "WARNING ⛔: Tea v${{ inputs.tea-version }} Checksum Failed"
+          exit 1
+    - name: Login to Gitea
+      shell: bash
+      env:
+        GIT_SERVER_URL: ${{ inputs.url }}
+        GIT_SERVER_TOKEN: ${{ inputs.token }}
+      run: >-
+        tea login add
+        -u "$GIT_SERVER_URL"
+        -t "$GIT_SERVER_TOKEN"
+    - name: Check if open PR exists
+      shell: bash
+      id: check-opened-pr-step
+      continue-on-error: true
+      run: |
+        pr_exists=$(tea pr list \
+          --repo ${{ github.repository }} \
+          --state open \
+          --fields head \
+          --output simple
+          | egrep '${{ github.ref_name }}' | wc -l)
+
+        echo "exists=$pr_exists" >> $GITHUB_OUTPUT
+    - name: Skip PR Creation
+      if: steps.check-opened-pr-step.outputs.exists == '0'
+      shell: bash
+      run: |
+        echo -e "✅ A PR already exists for ${{ gitea.ref_name }}\nSkipping PR creation..."\
+    - name: PR Creation
+      shell: bash
+      if: steps.check-opened-pr-step.outputs.exists == '1'
+      run: |
+        PR_TITLE=$(git log -n 1 --format=%s)
+        PR_DESCRIP=$(git log -n 1 --format=%b)
+        tea pr c -r ${{ github.repository }} \
+          -t "${PR_TITLE}" \
+          -d "${PR_DESCRIP}" \
+          -a ${{ github.actor }} \
+          -L ${{ inputs.pr-label }}
