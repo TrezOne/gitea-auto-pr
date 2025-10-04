@@ -1,6 +1,5 @@
-name: "Pre-pull Docker Compose service images"
-description: "Prepares Docker Compose services by pulling images in parallel before dry-run"
-author: "Trez.One <charish.patel@trez.wtf>"
+name: "Gitea Auto-PR (Github and Gitea Compatible)"
+description: "Gitea-compatible version of https://github.com/arifer612/Gitea-PR-action"
 
 branding:
   icon: "git-pull-request"
