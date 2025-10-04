@@ -26,23 +26,16 @@ runs:
   steps:
     - name: Install Tea
       env:
-        TEA_DL_URL: "https://dl.gitea.com/tea/${{ inputs.tea-version }}\
-          /tea-${{ inputs.tea-version }}-linux-amd64"
+        TEA_DL_URL: "https://dl.gitea.com/tea/${{ inputs.tea-version }}/tea-${{ inputs.tea-version }}-linux-amd64"
       shell: bash
       run: |
-        TEA_DIR=$(mktemp -d -t tmp.XXXX)
-        pushd $TEA_DIR
-        wget -q "$TEA_DL_URL"
+        cd /tmp
+        wget -q "${TEA_DL_URL}"
         wget -q "${TEA_DL_URL}.sha256"
-        echo "Checksum..."
         if $(sha256sum --quiet -c "tea-${{ inputs.tea-version }}-linux-amd64.sha256"); then
           mv "tea-${{ inputs.tea-version }}-linux-amd64" /usr/bin/tea
           chmod +x /usr/bin/tea
-          popd
-          rm -rf $TEA_DIR
         else
-          popd
-          rm -rf $TEA_DIR
           echo "WARNING ⛔: Tea v${{ inputs.tea-version }} Checksum Failed"
           exit 1
     - name: Login to Gitea
