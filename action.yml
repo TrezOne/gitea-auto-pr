@@ -63,7 +63,7 @@ runs:
           --repo ${{ github.repository }} \
           --state open \
           --fields head \
-          --output simple
+          --output simple \
           | egrep '${{ github.ref_name }}' | wc -l)
 
         echo "exists=$pr_exists" >> $GITHUB_OUTPUT
