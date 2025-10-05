@@ -39,6 +39,7 @@ runs:
           echo "WARNING ⛔: Tea v${{ inputs.tea-version }} Checksum Failed"
           exit 1
         fi
+
     - name: Login to Gitea
       shell: bash
       env:
@@ -48,6 +49,7 @@ runs:
         tea login add
         -u "$GIT_SERVER_URL"
         -t "$GIT_SERVER_TOKEN"
+
     - name: Check if open PR exists
       shell: bash
       id: check-opened-pr-step
@@ -61,6 +63,7 @@ runs:
           | egrep '${{ github.ref_name }}' | wc -l)
 
         echo "exists=$pr_exists" >> $GITHUB_OUTPUT
+
     - name: Skip PR Creation
       if: steps.check-opened-pr-step.outputs.exists == '1'
       shell: bash
