@@ -9,14 +9,18 @@ inputs:
   url:
     description: URL to the Gitea instance
     required: true
+
   token:
     description: Personal access token to the Gitea instance
     required: true
+
   tea-version:
     description: Tea CLI version
     default: 0.11.0
+
   pr-label:
     description: Labels for the PR (comma-separated)
+
   assignee:
     description: User to assign the PR to
     default: ${{ github.actor }}
