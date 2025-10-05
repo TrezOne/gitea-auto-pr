@@ -16,7 +16,7 @@ inputs:
 
   tea-version:
     description: Tea CLI version
-    default: 0.10.0
+    default: 0.10.1
 
   pr-label:
     description: Labels for the PR (comma-separated)
