@@ -73,6 +73,7 @@ runs:
       shell: bash
       run: |
         echo -e "✅ A PR already exists for ${{ gitea.ref_name }}\nSkipping PR creation..."\
+
     - name: PR Creation
       shell: bash
       if: steps.check-opened-pr-step.outputs.exists == '0'
