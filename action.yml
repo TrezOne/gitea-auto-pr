@@ -51,9 +51,9 @@ runs:
         GIT_SERVER_TOKEN: ${{ inputs.token }}
       run: >-
         tea login add
-        --name bot-login
         --url "$GIT_SERVER_URL"
         --token "$GIT_SERVER_TOKEN"
+        --debug
 
     - name: Check if open PR exists
       shell: bash
