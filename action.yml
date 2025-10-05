@@ -53,7 +53,6 @@ runs:
         tea login add
         --url "$GIT_SERVER_URL"
         --token "$GIT_SERVER_TOKEN"
-        --debug
 
     - name: Check if open PR exists
       shell: bash
@@ -65,7 +64,7 @@ runs:
           --repo ${{ github.repository }} \
           --state open \
           --fields head \
-          --output simple --debug \
+          --output simple \
           | egrep '${{ github.ref_name }}' | wc -l)
 
         echo "exists=$pr_exists" >> $GITHUB_OUTPUT
@@ -87,4 +86,4 @@ runs:
           -t "${PR_TITLE}" \
           -d "${PR_DESCRIP}" \
           -a ${{ github.actor }} \
-          -L ${{ inputs.pr-label }} --debug
+          -L ${{ inputs.pr-label }}
