@@ -24,7 +24,7 @@ user: read
 
 ### tea-version
 
-Tea CLI version (Default: 0.11.0)
+Tea CLI version (Default: 0.10.1)
 
 ### pr-label
 
