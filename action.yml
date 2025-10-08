@@ -59,7 +59,7 @@ runs:
       id: check-opened-pr-step
       continue-on-error: true
       run: |
-        echo "Checking for PR..."
+        echo "Checking for PR... 🔎"
         pr_exists=$(tea pr list \
           --repo ${{ github.repository }} \
           --state open \
@@ -79,7 +79,7 @@ runs:
       shell: bash
       if: steps.check-opened-pr-step.outputs.exists == '0'
       run: |
-        echo "PR Created..."
+        echo "PR Created 🎫"
         PR_TITLE=$(git log -n 1 --format=%s)
         PR_DESCRIP=$(git log -n 1 --format=%b)
         tea pr c -r ${{ github.repository }} \
