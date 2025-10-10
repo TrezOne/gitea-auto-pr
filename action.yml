@@ -79,7 +79,6 @@ runs:
       shell: bash
       if: steps.check-opened-pr-step.outputs.exists == '0'
       run: |
-        echo "PR Created 🎫"
         PR_TITLE=$(git log -n 1 --format=%s)
         PR_DESCRIP=$(git log -n 1 --format=%b)
         tea pr c -r ${{ github.repository }} \
@@ -87,3 +86,4 @@ runs:
           -d "${PR_DESCRIP}" \
           -a ${{ github.actor }} \
           -L ${{ inputs.pr-label }}
+        echo "PR Created 🎫"
