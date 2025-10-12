@@ -18,6 +18,12 @@ inputs:
     description: Tea CLI version
     default: 0.10.1
 
+  pr-title:
+    description: Custom title. Defaults to using subject of the most recent commit.
+
+  pr-description:
+    description: Custom description. Defaults to using body of the most recent commit.
+
   pr-label:
     description: Labels for the PR (comma-separated)
 
@@ -78,9 +84,16 @@ runs:
     - name: PR Creation
       shell: bash
       if: steps.check-opened-pr-step.outputs.exists == '0'
+      env:
+        PR_TITLE: ${{ inputs.pr-title }}
+        PR_DESCRIP: ${{ inputs.pr-description }}
       run: |
-        PR_TITLE=$(git log -n 1 --format=%s)
-        PR_DESCRIP=$(git log -n 1 --format=%b)
+        if [ -z "${PR_TITLE}" ]; then
+          PR_TITLE=$(git log -n 1 --format=%s)
+        fi
+        if [ -z "${PR_DESCRIP}" ]; then
+          PR_DESCRIP=$(git log -n 1 --format=%b)
+        fi
         tea pr c -r ${{ github.repository }} \
           -t "${PR_TITLE}" \
           -d "${PR_DESCRIP}" \

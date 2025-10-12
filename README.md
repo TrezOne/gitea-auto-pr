@@ -26,6 +26,12 @@ user: read
 
 Tea CLI version (Default: 0.10.1)
 
+### pr-title
+Custom title. Defaults to using subject of the most recent commit (`git log -n 1 --format=%s`).
+
+### pr-description
+Custom description. Defaults to using body of the most recent commit (`git log -n 1 --format=%b`).
+
 ### pr-label
 
 Issues label for the PR
