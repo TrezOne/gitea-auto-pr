@@ -31,6 +31,11 @@ inputs:
     description: User to assign the PR to
     default: ${{ github.actor }}
 
+outputs:
+  pr_number:
+    description: The PR index/number that exists or was created
+    value: ${{ steps.set-pr-output.outputs.pr_number }}
+
 runs:
   using: "composite"
   steps:
@@ -55,10 +60,8 @@ runs:
       env:
         GIT_SERVER_URL: ${{ inputs.url }}
         GIT_SERVER_TOKEN: ${{ inputs.token }}
-      run: >-
-        tea login add
-        --url "$GIT_SERVER_URL"
-        --token "$GIT_SERVER_TOKEN"
+      run: |
+        tea login add --url "$GIT_SERVER_URL" --token "$GIT_SERVER_TOKEN"
 
     - name: Check if open PR exists
       shell: bash
@@ -66,24 +69,25 @@ runs:
       continue-on-error: true
       run: |
         echo "Checking for PR... 🔎"
-        pr_exists=$(tea pr list \
+        pr_number=$(tea pr list \
           --repo ${{ github.repository }} \
           --state open \
-          --fields head \
+          --fields index,head \
           --output simple \
-          | egrep '${{ github.ref_name }}' | wc -l)
-
-        echo "exists=$pr_exists" >> $GITHUB_OUTPUT
+          | egrep "${{ github.ref_name }}" \
+          | awk '{print $1}')
+        echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
     - name: Skip PR Creation
-      if: steps.check-opened-pr-step.outputs.exists == '1'
+      if: steps.check-opened-pr-step.outputs.pr_number != ''
       shell: bash
       run: |
-        echo -e "✅ A PR already exists for ${{ gitea.ref_name }}\nSkipping PR creation..."\
+        echo -e "✅ A PR already exists for ${{ github.ref_name }} (PR #${{ steps.check-opened-pr-step.outputs.pr_number }})"
 
     - name: PR Creation
       shell: bash
-      if: steps.check-opened-pr-step.outputs.exists == '0'
+      if: steps.check-opened-pr-step.outputs.pr_number == ''
+      id: pr-creation
       env:
         PR_TITLE: ${{ inputs.pr-title }}
         PR_DESCRIP: ${{ inputs.pr-description }}
@@ -94,9 +98,24 @@ runs:
         if [ -z "${PR_DESCRIP}" ]; then
           PR_DESCRIP=$(git log -n 1 --format=%b)
         fi
-        tea pr c -r ${{ github.repository }} \
+
+        created_pr_index=$(tea pr c -r ${{ github.repository }} \
           -t "${PR_TITLE}" \
           -d "${PR_DESCRIP}" \
-          -a ${{ github.actor }} \
-          -L ${{ inputs.pr-label }}
-        echo "PR Created 🎫"
+          -a ${{ inputs.assignee }} \
+          -L "${{ inputs.pr-label }}" \
+          --output simple \
+          | awk '{print $1}')
+
+        echo "PR Created 🎫 (PR #$created_pr_index)"
+        echo "created_pr_index=$created_pr_index" >> $GITHUB_OUTPUT
+
+    - name: Set unified PR number output
+      id: set-pr-output
+      shell: bash
+      run: |
+        # Use existing PR number if present, otherwise the newly created PR
+        if [ -n "${{ steps.check-opened-pr-step.outputs.pr_number }}" ]; then
+          echo "pr_number=${{ steps.check-opened-pr-step.outputs.pr_number }}" >> $GITHUB_OUTPUT
+        else
+          echo "pr_number=${{ steps.pr-creation.outputs.created_pr_index }}" >> $GITHUB_OUTPUT
