@@ -121,4 +121,5 @@ runs:
           echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
         else
           echo "pr_number=$CREATED_PR" >> $GITHUB_OUTPUT
+        fi
 
