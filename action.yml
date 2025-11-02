@@ -113,9 +113,12 @@ runs:
     - name: Set unified PR number output
       id: set-pr-output
       shell: bash
+      env:
+        EXISTING_PR: ${{ steps.check-opened-pr-step.outputs.pr_number }}
+        CREATED_PR: ${{ steps.pr-creation.outputs.created_pr_index }}
       run: |
-        # Use existing PR number if present, otherwise the newly created PR
-        if [ -n "${{ steps.check-opened-pr-step.outputs.pr_number }}" ]; then
-          echo "pr_number=${{ steps.check-opened-pr-step.outputs.pr_number }}" >> $GITHUB_OUTPUT
+        if [ -n "$EXISTING_PR" ]; then
+          echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
         else
-          echo "pr_number=${{ steps.pr-creation.outputs.created_pr_index }}" >> $GITHUB_OUTPUT
+          echo "pr_number=$CREATED_PR" >> $GITHUB_OUTPUT
+
