@@ -107,7 +107,7 @@ runs:
           --output simple \
           | awk '{print $1}')
 
-        echo "PR Created 🎫 (PR #$created_pr_index)"
+        echo "PR Created 🎫 (PR \#$created_pr_index)"
         echo "created_pr_index=$created_pr_index" >> $GITHUB_OUTPUT
 
     - name: Set unified PR number output
