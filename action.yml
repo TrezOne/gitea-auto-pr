@@ -82,10 +82,19 @@ runs:
         echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
     - name: Skip PR Creation
+      id: skip-pr-creation
       if: steps.check-opened-pr-step.outputs.pr_number != ''
       shell: bash
       run: |
         echo -e "✅ A PR already exists for ${{ github.ref_name }} (PR #${{ steps.check-opened-pr-step.outputs.pr_number }})"
+
+        created_pr_url=$(tea pr ls --state open \
+          -r ${{ github.repository }} \
+          -f index,url \
+          -o simple \
+          | grep ${{ steps.check-opened-pr-step.outputs.pr_number }}' | awk '{print $2}')
+
+        echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
 
     - name: PR Creation
       shell: bash
@@ -126,9 +135,12 @@ runs:
       env:
         EXISTING_PR: ${{ steps.check-opened-pr-step.outputs.pr_number }}
         CREATED_PR: ${{ steps.pr-creation.outputs.created_pr_index }}
+        EXISTING_URL: ${{ steps.skip-pr-creation.outputs.pr_url }}
+        CREATED_URL: ${{ steps.pr-creation.outputs.pr_url }}
       run: |
         if [ -n "$EXISTING_PR" ]; then
           echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
+          echo "pr_url=$"
         else
           echo "pr_number=$CREATED_PR" >> $GITHUB_OUTPUT
         fi
