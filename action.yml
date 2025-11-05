@@ -107,8 +107,15 @@ runs:
           --output simple \
           | awk '{print $1}')
 
+        created_pr_url=$(tea pr ls --state open \
+          -r ${{ github.repository }} \
+          -f index,url \
+          -o simple \
+          | egrep '${created_pr_index}' | awk '{print $2}')
+
         echo "PR Created 🎫 (PR \#$created_pr_index)"
         echo "created_pr_index=$created_pr_index" >> $GITHUB_OUTPUT
+        echo "created_pr_url=$created_pr_url" >> $GITHUB_OUTPUT
 
     - name: Set unified PR number output
       id: set-pr-output
