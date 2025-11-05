@@ -37,7 +37,7 @@ outputs:
     value: ${{ steps.set-pr-output.outputs.pr_number }}
   pr_url:
     description: The URL for the PR index/number that exists or was created
-    value: ${{ steps.pr-creation.outputs.pr_url }}
+    value: ${{ steps.set-pr-output.outputs.pr_url }}
 
 runs:
   using: "composite"
@@ -140,8 +140,9 @@ runs:
       run: |
         if [ -n "$EXISTING_PR" ]; then
           echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
-          echo "pr_url=$"
+          echo "pr_url=$EXISTING_URL" >> $GITHUB_OUTPUT
         else
           echo "pr_number=$CREATED_PR" >> $GITHUB_OUTPUT
+          echo "pr_url=$CREATED_URL" >> $GITHUB_OUTPUT
         fi
 
