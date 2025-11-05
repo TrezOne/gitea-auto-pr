@@ -88,11 +88,17 @@ runs:
       run: |
         echo -e "✅ A PR already exists for ${{ github.ref_name }} (PR #${{ steps.check-opened-pr-step.outputs.pr_number }})"
 
+        tea pr ls --state open \
+          -r ${{ github.repository }} \
+          -f index,url \
+          -o simple \
+          | egrep "${{ steps.check-opened-pr-step.outputs.pr_number }}" | awk '{print $2}'
+
         created_pr_url=$(tea pr ls --state open \
           -r ${{ github.repository }} \
           -f index,url \
           -o simple \
-          | egrep ${{ steps.check-opened-pr-step.outputs.pr_number }} | awk '{print $2}')
+          | egrep "${{ steps.check-opened-pr-step.outputs.pr_number }}" | awk '{print $2}')
 
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
 
