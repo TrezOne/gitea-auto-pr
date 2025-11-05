@@ -35,6 +35,9 @@ outputs:
   pr_number:
     description: The PR index/number that exists or was created
     value: ${{ steps.set-pr-output.outputs.pr_number }}
+  pr_url:
+    description: The URL for the PR index/number that exists or was created
+    value: ${{ steps.set-pr-output.outputs.pr_url }}
 
 runs:
   using: "composite"
@@ -115,7 +118,7 @@ runs:
 
         echo "PR Created 🎫 (PR \#$created_pr_index)"
         echo "created_pr_index=$created_pr_index" >> $GITHUB_OUTPUT
-        echo "created_pr_url=$created_pr_url" >> $GITHUB_OUTPUT
+        echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
 
     - name: Set unified PR number output
       id: set-pr-output
