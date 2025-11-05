@@ -92,7 +92,7 @@ runs:
           -r ${{ github.repository }} \
           -f index,url \
           -o simple \
-          | grep ${{ steps.check-opened-pr-step.outputs.pr_number }}' | awk '{print $2}')
+          | egrep ${{ steps.check-opened-pr-step.outputs.pr_number }} | awk '{print $2}')
 
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
 
