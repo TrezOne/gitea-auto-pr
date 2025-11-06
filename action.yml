@@ -107,9 +107,11 @@ runs:
 
         pr_comment_id=$(curl -sS -X GET ${pr_comments_url} | jq -r '[.[] | select(.user.login == "gitea-sonarqube-bot")] | sort_by(.created_at) | last | .id')
 
+        echo ${pr_comment_id}
+
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
-        echo "pr_comments_url=$pr_comments_url" >> $GITHUB_OUTPUT
-        echo "pr_comment_id=$pr_comment_id" >> $GITHUB_OUTPUT
+        echo "pr_comments_url=$(echo ${pr_comments_url})" >> $GITHUB_OUTPUT
+        echo "pr_comment_id=$(echo ${pr_comment_id})" >> $GITHUB_OUTPUT
 
     - name: PR Creation
       shell: bash
