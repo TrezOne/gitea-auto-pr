@@ -38,6 +38,10 @@ outputs:
   pr_url:
     description: The URL for the PR index/number that exists or was created
     value: ${{ steps.set-pr-output.outputs.pr_url }}
+  pr_comment_id:
+    description: API endpoint for grabbing all comments of a PR
+    value: ${{ steps.set-pr-output.outputs.pr_comment }}
+
 
 runs:
   using: "composite"
@@ -94,7 +98,13 @@ runs:
           -o simple \
           | egrep "${{ steps.check-opened-pr-step.outputs.pr_number }}" | awk '{print $2}')
 
+        pr_comments_url=$(echo "${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/${{ steps.check-opened-pr-step.outputs.pr_number }}/comments)
+
+        pr_comment_id=$(curl -sS -X GET ${pr_comments_url} | jq -r '[.[] | select(.user.login == "gitea-sonarqube-bot")] | sort_by(.created_at) | last | .id')
+
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
+        echo "pr_comments_url=$pr_comments_url" >> $GITHUB_OUTPUT
+        echo "pr_comment_id=$pr_comment_id" >> $GITHUB_OUTPUT
 
     - name: PR Creation
       shell: bash
@@ -125,9 +135,12 @@ runs:
           -o simple \
           | egrep '${created_pr_index}' | awk '{print $2}')
 
+        pr_comments_url=$(echo "${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/${{ steps.check-opened-pr-step.outputs.pr_number }}/comments)
+
         echo "PR Created 🎫 (PR \#$created_pr_index) - $created_pr_url"
         echo "created_pr_index=$created_pr_index" >> $GITHUB_OUTPUT
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
+        echo "pr_comments_url=$pr_comments_url" >> $GITHUB_OUTPUT
 
     - name: Set unified PR number output
       id: set-pr-output
@@ -137,10 +150,14 @@ runs:
         CREATED_PR: ${{ steps.pr-creation.outputs.created_pr_index }}
         EXISTING_URL: ${{ steps.skip-pr-creation.outputs.pr_url }}
         CREATED_URL: ${{ steps.pr-creation.outputs.pr_url }}
+        EXISTING_COMMENTS_URL: ${{ steps.skip-pr-creation.outputs.pr_url }}
+        EXISTING_COMMENT_ID: ${{ steps.skip-pr-creation.outputs.pr_url }}
       run: |
         if [ -n "$EXISTING_PR" ]; then
           echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
           echo "pr_url=$EXISTING_URL" >> $GITHUB_OUTPUT
+          echo "pr_comments_url=$EXISTING_COMMENTS_URL" >> $GITHUB_OUTPUT
+          echo "pr_comment_id=$EXISTING_COMMENT_ID" >> $GITHUB_OUTPUT
         else
           echo "pr_number=$CREATED_PR" >> $GITHUB_OUTPUT
           echo "pr_url=$CREATED_URL" >> $GITHUB_OUTPUT
