@@ -108,9 +108,9 @@ runs:
         pr_comment_uri=$(echo "${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/comments/${pr_comment_id}")
 
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
-        echo "pr_comments_url=$(echo ${pr_comments_url})" >> $GITHUB_OUTPUT
-        echo "pr_comment_id=$(echo ${pr_comment_id})" >> $GITHUB_OUTPUT
-        echo "pr_comment_uri=$(echo ${pr_comment_uri})" >> $GITHUB_OUTPUT
+        echo "pr_comments_url=$pr_comments_url" >> $GITHUB_OUTPUT
+        echo "pr_comment_id=$pr_comment_id" >> $GITHUB_OUTPUT
+        echo "pr_comment_uri=$pr_comment_uri" >> $GITHUB_OUTPUT
 
     - name: PR Creation
       shell: bash
