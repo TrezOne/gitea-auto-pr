@@ -103,7 +103,7 @@ runs:
 
         pr_comments_url=$(echo "${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/${{ steps.check-opened-pr-step.outputs.pr_number }}/comments")
 
-        ${pr_comments_url}
+        echo ${pr_comments_url}
 
         pr_comment_id=$(curl -sS -X GET ${pr_comments_url} | jq -r '[.[] | select(.user.login == "gitea-sonarqube-bot")] | sort_by(.created_at) | last | .id')
 
