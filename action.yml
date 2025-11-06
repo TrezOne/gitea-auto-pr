@@ -105,7 +105,7 @@ runs:
 
         pr_comment_id=$(curl -sS -X GET ${pr_comments_url} | jq -r '[.[] | select(.user.login == "gitea-sonarqube-bot")] | sort_by(.created_at) | last | .id')
 
-        pr_comment_uri=$(echo ${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/comments/${pr_comment_id}")
+        pr_comment_uri=$(echo "${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/comments/${pr_comment_id}")
 
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
         echo "pr_comments_url=$(echo ${pr_comments_url})" >> $GITHUB_OUTPUT
