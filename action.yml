@@ -103,15 +103,14 @@ runs:
 
         pr_comments_url=$(echo "${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/${{ steps.check-opened-pr-step.outputs.pr_number }}/comments")
 
-        echo ${pr_comments_url}
-
         pr_comment_id=$(curl -sS -X GET ${pr_comments_url} | jq -r '[.[] | select(.user.login == "gitea-sonarqube-bot")] | sort_by(.created_at) | last | .id')
 
-        echo ${pr_comment_id}
+        pr_comment_uri=$(echo ${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/comments/${pr_comment_id}")
 
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
         echo "pr_comments_url=$(echo ${pr_comments_url})" >> $GITHUB_OUTPUT
         echo "pr_comment_id=$(echo ${pr_comment_id})" >> $GITHUB_OUTPUT
+        echo "pr_comment_uri=$(echo ${pr_comment_uri})" >> $GITHUB_OUTPUT
 
     - name: PR Creation
       shell: bash
@@ -144,12 +143,11 @@ runs:
 
         pr_comments_url=$(echo "${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/${{ steps.check-opened-pr-step.outputs.pr_number }}/comments")
 
-        ${pr_comments_url}
-
         echo "PR Created 🎫 (PR \#$created_pr_index) - $created_pr_url"
         echo "created_pr_index=$created_pr_index" >> $GITHUB_OUTPUT
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
         echo "pr_comments_url=$pr_comments_url" >> $GITHUB_OUTPUT
+        echo "pr_comment_uri=$pr_comment_uri" >> $GITHUB_OUTPUT
 
     - name: Set unified PR number output
       id: set-pr-output
@@ -161,6 +159,7 @@ runs:
         CREATED_URL: ${{ steps.pr-creation.outputs.pr_url }}
         EXISTING_COMMENTS_URL: ${{ steps.skip-pr-creation.outputs.pr_url }}
         EXISTING_COMMENT_ID: ${{ steps.skip-pr-creation.outputs.pr_url }}
+        EXISTING_COMMENT_URI: ${{ steps.skip-pr-creation.outputs.pr_ }}
       run: |
         if [ -n "$EXISTING_PR" ]; then
           echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
@@ -179,3 +178,4 @@ runs:
         echo "PR URL: ${{ steps.set-pr-output.outputs.pr_url }}"
         echo "PR Comments: ${{ steps.set-pr-output.outputs.pr_comments_url }}"
         echo "PR Comment ID: ${{ steps.set-pr-output.outputs.pr_comment_id }}"
+        echo "PR Comment URI: ${{ steps.set-pr-output.outputs.pr_comment_uri }}"
