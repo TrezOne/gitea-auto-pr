@@ -1,4 +1,4 @@
-name: "Gitea Auto-PR (Github and Gitea Compatible)"
+name: "Gitea Auto-PR (GitHub and Gitea Compatible)"
 description: "Gitea-compatible version of https://github.com/arifer612/Gitea-PR-action"
 
 branding:
@@ -42,22 +42,24 @@ outputs:
     description: API endpoint for grabbing all comments of a PR
     value: ${{ steps.set-pr-output.outputs.pr_comments_url }}
   pr_comment_id:
-    description: API endpoint for grabbing all comments of a PR
+    description: The latest PR comment ID (if available)
     value: ${{ steps.set-pr-output.outputs.pr_comment_id }}
-
+  pr_comment_uri:
+    description: Direct API URI for that latest PR comment
+    value: ${{ steps.set-pr-output.outputs.pr_comment_uri }}
 
 runs:
   using: "composite"
   steps:
     - name: Install Tea
+      shell: bash
       env:
         TEA_DL_URL: "https://dl.gitea.com/tea/${{ inputs.tea-version }}/tea-${{ inputs.tea-version }}-linux-amd64"
-      shell: bash
       run: |
         cd /tmp
         wget -q "${TEA_DL_URL}"
         wget -q "${TEA_DL_URL}.sha256"
-        if $(sha256sum --quiet -c "tea-${{ inputs.tea-version }}-linux-amd64.sha256"); then
+        if sha256sum --quiet -c "tea-${{ inputs.tea-version }}-linux-amd64.sha256"; then
           mv "tea-${{ inputs.tea-version }}-linux-amd64" /usr/bin/tea
           chmod +x /usr/bin/tea
         else
@@ -72,11 +74,11 @@ runs:
         GIT_SERVER_TOKEN: ${{ inputs.token }}
       run: |
         tea login add --url "$GIT_SERVER_URL" --token "$GIT_SERVER_TOKEN"
+        tea login default "$(tea login ls | head -n1 | awk '{print $1}')"
 
     - name: Check if open PR exists
-      shell: bash
       id: check-opened-pr-step
-      continue-on-error: true
+      shell: bash
       run: |
         echo "Checking for PR... 🔎"
         pr_number=$(tea pr list \
@@ -84,8 +86,7 @@ runs:
           --state open \
           --fields index,head \
           --output simple \
-          | egrep "${{ github.ref_name }}" \
-          | awk '{print $1}')
+          | grep -E "${{ github.ref_name }}" | awk '{print $1}')
         echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
     - name: Skip PR Creation
@@ -93,19 +94,18 @@ runs:
       if: steps.check-opened-pr-step.outputs.pr_number != ''
       shell: bash
       run: |
-        echo -e "✅ A PR already exists for ${{ github.ref_name }} (PR #${{ steps.check-opened-pr-step.outputs.pr_number }})"
+        echo "✅ A PR already exists for ${{ github.ref_name }} (PR #${{ steps.check-opened-pr-step.outputs.pr_number }})"
 
-        created_pr_url=$(tea pr ls --state open \
+        created_pr_url=$(tea pr list --state open \
           -r ${{ github.repository }} \
-          -f index,url \
-          -o simple \
-          | egrep "${{ steps.check-opened-pr-step.outputs.pr_number }}" | awk '{print $2}')
+          --fields index,url \
+          --output simple \
+          | grep -E "${{ steps.check-opened-pr-step.outputs.pr_number }}" | awk '{print $2}')
 
-        pr_comments_url=$(echo "${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/${{ steps.check-opened-pr-step.outputs.pr_number }}/comments")
+        pr_comments_url="${{ inputs.url }}/api/v1/repos/${{ github.repository }}/issues/${{ steps.check-opened-pr-step.outputs.pr_number }}/comments"
 
-        pr_comment_id=$(curl -sS -X GET ${pr_comments_url} | jq -r '[.[] | select(.user.login == "gitea-sonarqube-bot")] | sort_by(.created_at) | last | .id')
-
-        pr_comment_uri=$(echo "${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/comments/${pr_comment_id}")
+        pr_comment_id=$(curl -sS -X GET "$pr_comments_url" | jq -r '[.[] | select(.user.login == "gitea-sonarqube-bot")] | sort_by(.created_at) | last | .id')
+        pr_comment_uri="${{ inputs.url }}/api/v1/repos/${{ github.repository }}/issues/comments/${pr_comment_id}"
 
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
         echo "pr_comments_url=$pr_comments_url" >> $GITHUB_OUTPUT
@@ -113,37 +113,37 @@ runs:
         echo "pr_comment_uri=$pr_comment_uri" >> $GITHUB_OUTPUT
 
     - name: PR Creation
-      shell: bash
-      if: steps.check-opened-pr-step.outputs.pr_number == ''
       id: pr-creation
+      if: steps.check-opened-pr-step.outputs.pr_number == ''
+      shell: bash
       env:
         PR_TITLE: ${{ inputs.pr-title }}
         PR_DESCRIP: ${{ inputs.pr-description }}
       run: |
-        if [ -z "${PR_TITLE}" ]; then
+        if [ -z "$PR_TITLE" ]; then
           PR_TITLE=$(git log -n 1 --format=%s)
         fi
-        if [ -z "${PR_DESCRIP}" ]; then
+        if [ -z "$PR_DESCRIP" ]; then
           PR_DESCRIP=$(git log -n 1 --format=%b)
         fi
 
-        created_pr_index=$(tea pr c -r ${{ github.repository }} \
-          -t "${PR_TITLE}" \
-          -d "${PR_DESCRIP}" \
-          -a ${{ inputs.assignee }} \
+        created_pr_index=$(tea pr create -r ${{ github.repository }} \
+          -t "$PR_TITLE" \
+          -d "$PR_DESCRIP" \
+          -a "${{ inputs.assignee }}" \
           -L "${{ inputs.pr-label }}" \
-          --output simple \
-          | awk '{print $1}')
+          --output simple | awk '{print $1}')
 
-        created_pr_url=$(tea pr ls --state open \
+        created_pr_url=$(tea pr list --state open \
           -r ${{ github.repository }} \
-          -f index,url \
-          -o simple \
-          | egrep '${created_pr_index}' | awk '{print $2}')
+          --fields index,url \
+          --output simple \
+          | grep -E "$created_pr_index" | awk '{print $2}')
 
-        pr_comments_url=$(echo "${{ gitea.api_url }}/repos/${{ gitea.repository }}/issues/${{ steps.check-opened-pr-step.outputs.pr_number }}/comments")
+        pr_comments_url="${{ inputs.url }}/api/v1/repos/${{ github.repository }}/issues/${created_pr_index}/comments"
+        pr_comment_uri="${{ inputs.url }}/api/v1/repos/${{ github.repository }}/issues/comments/${created_pr_index}"
 
-        echo "PR Created 🎫 (PR \#$created_pr_index) - $created_pr_url"
+        echo "PR Created 🎫 (PR #$created_pr_index) - $created_pr_url"
         echo "created_pr_index=$created_pr_index" >> $GITHUB_OUTPUT
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
         echo "pr_comments_url=$pr_comments_url" >> $GITHUB_OUTPUT
@@ -157,18 +157,25 @@ runs:
         CREATED_PR: ${{ steps.pr-creation.outputs.created_pr_index }}
         EXISTING_URL: ${{ steps.skip-pr-creation.outputs.pr_url }}
         CREATED_URL: ${{ steps.pr-creation.outputs.pr_url }}
-        EXISTING_COMMENTS_URL: ${{ steps.skip-pr-creation.outputs.pr_url }}
-        EXISTING_COMMENT_ID: ${{ steps.skip-pr-creation.outputs.pr_url }}
-        EXISTING_COMMENT_URI: ${{ steps.skip-pr-creation.outputs.pr_ }}
+        EXISTING_COMMENTS_URL: ${{ steps.skip-pr-creation.outputs.pr_comments_url }}
+        CREATED_COMMENTS_URL: ${{ steps.pr-creation.outputs.pr_comments_url }}
+        EXISTING_COMMENT_ID: ${{ steps.skip-pr-creation.outputs.pr_comment_id }}
+        CREATED_COMMENT_ID: ${{ steps.pr-creation.outputs.pr_comment_id }}
+        EXISTING_COMMENT_URI: ${{ steps.skip-pr-creation.outputs.pr_comment_uri }}
+        CREATED_COMMENT_URI: ${{ steps.pr-creation.outputs.pr_comment_uri }}
       run: |
         if [ -n "$EXISTING_PR" ]; then
           echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
           echo "pr_url=$EXISTING_URL" >> $GITHUB_OUTPUT
           echo "pr_comments_url=$EXISTING_COMMENTS_URL" >> $GITHUB_OUTPUT
           echo "pr_comment_id=$EXISTING_COMMENT_ID" >> $GITHUB_OUTPUT
+          echo "pr_comment_uri=$EXISTING_COMMENT_URI" >> $GITHUB_OUTPUT
         else
           echo "pr_number=$CREATED_PR" >> $GITHUB_OUTPUT
           echo "pr_url=$CREATED_URL" >> $GITHUB_OUTPUT
+          echo "pr_comments_url=$CREATED_COMMENTS_URL" >> $GITHUB_OUTPUT
+          echo "pr_comment_id=$CREATED_COMMENT_ID" >> $GITHUB_OUTPUT
+          echo "pr_comment_uri=$CREATED_COMMENT_URI" >> $GITHUB_OUTPUT
         fi
 
     - name: Verify outputs
