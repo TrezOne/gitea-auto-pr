@@ -166,3 +166,10 @@ runs:
           echo "pr_url=$CREATED_URL" >> $GITHUB_OUTPUT
         fi
 
+    - name: Verify outputs
+      shell: bash
+      run: |
+        echo "PR Number: ${{ steps.set-pr-output.outputs.pr_number }}"
+        echo "PR URL: ${{ steps.set-pr-output.outputs.pr_url }}"
+        echo "PR Comments: ${{ steps.set-pr-output.outputs.pr_comments_url }}"
+        echo "PR Comment ID: ${{ steps.set-pr-output.outputs.pr_comment_id }}"
