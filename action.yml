@@ -143,7 +143,7 @@ runs:
 
         pr_comments_url="${{ inputs.url }}/api/v1/repos/${{ github.repository }}/issues/${created_pr_index}/comments"
 
-        echo "PR Created 🎫 (PR #$created_pr_index) - $created_pr_url"
+        echo "PR Created 🎫 (PR $created_pr_index) - $created_pr_url"
         echo "created_pr_index=$created_pr_index" >> $GITHUB_OUTPUT
         echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
         echo "pr_comments_url=$pr_comments_url" >> $GITHUB_OUTPUT
