@@ -88,7 +88,8 @@ runs:
           --fields index,head \
           --output simple \
           | egrep "${{ github.ref_name }}" \
-          | awk '{print $1}')
+          | awk '{print $1}'\
+          | tr -d '#')
         echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
     - name: Skip PR Creation
@@ -134,7 +135,7 @@ runs:
           -d "${PR_DESCRIP}" \
           -a ${{ inputs.assignee }} \
           -L "${{ inputs.pr-label }}" \
-          --output simple | awk '{print $1}')
+          --output simple | awk '{print $1}' | tr -d '#')
 
         created_pr_url=$(tea pr ls --state open \
           -r ${{ github.repository }} \
