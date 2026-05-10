@@ -123,31 +123,37 @@ runs:
         PR_TITLE: ${{ inputs.pr-title }}
         PR_DESCRIP: ${{ inputs.pr-description }}
       run: |
+        set -euo pipefail
+
         if [ -z "${PR_TITLE}" ]; then
           PR_TITLE=$(git log -n 1 --format=%s)
         fi
+
         if [ -z "${PR_DESCRIP}" ]; then
           PR_DESCRIP=$(git log -n 1 --format=%b)
         fi
 
-        created_pr_index=$(tea pr c -r ${{ github.repository }} \
+        created_pr_index=$(tea pr create \
+          -r ${{ github.repository }} \
           -t "${PR_TITLE}" \
           -d "${PR_DESCRIP}" \
-          -a ${{ inputs.assignee }} \
+          -a "${{ inputs.assignee }}" \
           -L "${{ inputs.pr-label }}" \
-          --output simple | awk '{print $1}' | tr -d '#')
+          --output simple \
+          | awk '{print $1}' \
+          | tr -d '#')
 
-        created_pr_url=$(tea pr ls --state open \
-          -r ${{ github.repository }} \
-          -f index,url \
-          -o simple | grep "^${created_pr_index} " | awk '{print $2}')
+        created_pr_url="${{ inputs.url }}/${{ github.repository }}/pulls/${created_pr_index}"
 
         pr_comments_url="${{ inputs.url }}/api/v1/repos/${{ github.repository }}/issues/${created_pr_index}/comments"
 
+        {
+          echo "created_pr_index=${created_pr_index}"
+          echo "pr_url=${created_pr_url}"
+          echo "pr_comments_url=${pr_comments_url}"
+        } >> "$GITHUB_OUTPUT"
+
         echo "PR Created 🎫"
-        echo "created_pr_index=$created_pr_index" >> $GITHUB_OUTPUT
-        echo "pr_url=$created_pr_url" >> $GITHUB_OUTPUT
-        echo "pr_comments_url=$pr_comments_url" >> $GITHUB_OUTPUT
 
     - name: Set unified PR number output
       id: set-pr-output
