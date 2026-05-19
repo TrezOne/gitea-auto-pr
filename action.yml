@@ -140,7 +140,7 @@ runs:
           -a "${{ inputs.assignee }}" \
           -L "${{ inputs.pr-label }}" \
           --output simple \
-          | grep -m1 '#'
+          | grep -m1 '#' \
           | awk '{print $1}' \
           | tr -d '#')
 
