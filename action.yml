@@ -140,12 +140,18 @@ runs:
           -a "${{ inputs.assignee }}" \
           -L "${{ inputs.pr-label }}" \
           --output simple \
+          | grep -m1 '#'
           | awk '{print $1}' \
           | tr -d '#')
 
         created_pr_url="${{ inputs.url }}/${{ github.repository }}/pulls/${created_pr_index}"
 
         pr_comments_url="${{ inputs.url }}/api/v1/repos/${{ github.repository }}/issues/${created_pr_index}/comments"
+
+        if [[ -z "${created_pr_index}" ]]; then
+          echo "::error::tea pr create returned an empty PR index — check tea output format"
+          exit 1
+        fi
 
         {
           echo "created_pr_index=${created_pr_index}"
