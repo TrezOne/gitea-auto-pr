@@ -16,7 +16,7 @@ inputs:
 
   tea-version:
     description: Tea CLI version
-    default: 0.10.1
+    default: 0.14.2
 
   pr-title:
     description: Custom title. Defaults to using subject of the most recent commit.
@@ -81,15 +81,16 @@ runs:
       shell: bash
       continue-on-error: true
       run: |
-        echo "Checking for PR... 🔎"
         pr_number=$(tea pr list \
-          --repo ${{ github.repository }} \
-          --state open \
-          --fields index,head \
-          --output simple \
-          | egrep "${{ github.ref_name }}" \
-          | awk '{print $1}'\
-          | tr -d '#')
+        --repo ${{ github.repository }} \
+        --state open \
+        --fields index,head \
+        --output simple \
+        | egrep "${{ github.ref_name }}" \
+        | grep -oE '#[0-9]+' \
+        | head -n1 \
+        | tr -d '#')
+
         echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
     - name: Skip PR Creation
@@ -140,9 +141,15 @@ runs:
           -a "${{ inputs.assignee }}" \
           -L "${{ inputs.pr-label }}" \
           --output simple \
-          | grep -m1 '#' \
-          | awk '{print $1}' \
+          | grep -oE '#[0-9]+' \
+          | head -n1 \
           | tr -d '#')
+
+        if [[ -z "${created_pr_index}" || "${created_pr_index}" != [0-9]* ]]; then
+          echo "::error::Could not parse created PR index from tea output"
+          exit 1
+        fi
+
 
         created_pr_url="${{ inputs.url }}/${{ github.repository }}/pulls/${created_pr_index}"
 
