@@ -78,20 +78,27 @@ runs:
 
     - name: Check if open PR exists
       id: check-opened-pr-step
-      shell: bash
       continue-on-error: true
+      shell: bash
+      env:
+        HEAD_BRANCH: ${{ github.head_ref != '' && github.head_ref || github.ref_name }}
       run: |
-        pr_number=$(tea pr list \
-        --repo ${{ github.repository }} \
-        --state open \
-        --fields index,head \
-        --output simple \
-        | egrep "${{ github.ref_name }}" \
-        | grep -oE '#[0-9]+' \
-        | head -n1 \
-        | tr -d '#')
+        set -euo pipefail
+        echo "Checking for PR... 🔎"
 
-        echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
+        pr_number="$(
+          tea pr list \
+            -r ${{ github.repository }} \
+            --state open \
+            --fields index,head \
+            --output json \
+          | jq -r --arg hb "$HEAD_BRANCH" '
+              [.[] | select((.head|tostring) | contains($hb)) | .index][0] // empty
+            '
+        )"
+
+        echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+
 
     - name: Skip PR Creation
       id: skip-pr-creation
@@ -123,48 +130,58 @@ runs:
       env:
         PR_TITLE: ${{ inputs.pr-title }}
         PR_DESCRIP: ${{ inputs.pr-description }}
+        HEAD_BRANCH: ${{ github.head_ref != '' && github.head_ref || github.ref_name }}
       run: |
         set -euo pipefail
 
-        if [ -z "${PR_TITLE}" ]; then
-          PR_TITLE=$(git log -n 1 --format=%s)
-        fi
+        if [ -z "${PR_TITLE}" ]; then PR_TITLE=$(git log -n 1 --format=%s); fi
+        if [ -z "${PR_DESCRIP}" ]; then PR_DESCRIP=$(git log -n 1 --format=%b); fi
 
-        if [ -z "${PR_DESCRIP}" ]; then
-          PR_DESCRIP=$(git log -n 1 --format=%b)
-        fi
-
-        created_pr_index=$(tea pr create \
+        out=""
+        created_pr_index=""
+        set +e
+        out="$(tea pr create \
           -r ${{ github.repository }} \
           -t "${PR_TITLE}" \
           -d "${PR_DESCRIP}" \
           -a "${{ inputs.assignee }}" \
           -L "${{ inputs.pr-label }}" \
-          --output simple \
-          | grep -oE '#[0-9]+' \
-          | head -n1 \
-          | tr -d '#')
+          --output simple 2>&1)"
+        rc=$?
+        set -e
+
+        if [ $rc -eq 0 ]; then
+          created_pr_index="$(echo "$out" | grep -oE '#[0-9]+' | head -n1 | tr -d '#')"
+        else
+          if echo "$out" | grep -q "pull request already exists for these targets"; then
+            created_pr_index="$(
+              tea pr list \
+                -r ${{ github.repository }} \
+                --state open \
+                --fields index,head \
+                --output json \
+              | jq -r --arg hb "$HEAD_BRANCH" '
+                  [.[] | select((.head|tostring) | contains($hb)) | .index][0] // empty
+                '
+            )"
+          else
+            echo "$out" >&2
+            exit 1
+          fi
+        fi
 
         if [[ -z "${created_pr_index}" || "${created_pr_index}" != [0-9]* ]]; then
-          echo "::error::Could not parse created PR index from tea output"
+          echo "::error::Could not determine PR index"
+          echo "$out"
           exit 1
         fi
-
 
         created_pr_url="${{ inputs.url }}/${{ github.repository }}/pulls/${created_pr_index}"
-
         pr_comments_url="${{ inputs.url }}/api/v1/repos/${{ github.repository }}/issues/${created_pr_index}/comments"
 
-        if [[ -z "${created_pr_index}" ]]; then
-          echo "::error::tea pr create returned an empty PR index — check tea output format"
-          exit 1
-        fi
-
-        {
-          echo "created_pr_index=${created_pr_index}"
-          echo "pr_url=${created_pr_url}"
-          echo "pr_comments_url=${pr_comments_url}"
-        } >> "$GITHUB_OUTPUT"
+        echo "created_pr_index=${created_pr_index}" >> "$GITHUB_OUTPUT"
+        echo "pr_url=${created_pr_url}" >> "$GITHUB_OUTPUT"
+        echo "pr_comments_url=${pr_comments_url}" >> "$GITHUB_OUTPUT"
 
         echo "PR Created 🎫"
 
